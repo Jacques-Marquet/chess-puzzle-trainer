@@ -190,7 +190,7 @@ def write_json(puzzles, path):
     """One puzzle per line: compact, but still readable in git diffs."""
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [json.dumps(p, separators=(",", ":")) for p in puzzles]
-    path.write_text("[\n" + ",\n".join(lines) + "\n]\n", encoding="utf-8")
+    path.write_text("[\n" + ",\n".join(lines) + "\n]\n", encoding="utf-8", newline="\n")
 
 
 def main(argv=None):
