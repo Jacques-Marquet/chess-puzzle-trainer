@@ -1,0 +1,12 @@
+# Raw Lichess database (hundreds of MB) - regenerate with scripts/build_puzzles.py
+raw/
+*.zst
+*.csv
+!scripts/fixtures/*.csv
+
+# Python / Node / OS clutter
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+Thumbs.db
