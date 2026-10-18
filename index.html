@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chess Puzzle Trainer</title>
+  <meta name="description" content="Train chess tactics with real puzzles from the Lichess database.">
+  <link rel="icon" href="assets/pieces/wN.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- Menu -->
+  <section id="menu" class="screen">
+    <div class="menu-card">
+      <div id="menu-board" class="menu-board" aria-hidden="true"></div>
+      <div class="menu-content">
+        <h1>Chess Puzzle<br>Trainer</h1>
+        <p class="tagline">Sharpen your tactics with real positions from Lichess games.</p>
+        <div class="menu-buttons">
+          <button id="play-btn" class="btn btn-primary btn-large" disabled>Play</button>
+          <button id="levels-btn" class="btn btn-secondary btn-large" disabled>Level Select</button>
+        </div>
+        <p class="menu-meta"><span id="menu-status">Loading puzzles…</span></p>
+      </div>
+    </div>
+    <footer class="credits">
+      Puzzles from the <a href="https://database.lichess.org/#puzzles">Lichess puzzle database</a> (CC0).
+      Pieces: cburnett (CC BY-SA 3.0).
+    </footer>
+  </section>
+
+  <!-- Level select -->
+  <section id="levels" class="screen" hidden>
+    <div class="panel levels-panel">
+      <header class="screen-header">
+        <button class="btn btn-ghost back-btn" data-action="menu">← Menu</button>
+        <h2>Level Select</h2>
+      </header>
+
+      <h3 class="section-label">Difficulty</h3>
+      <div class="range">
+        <div class="range-readout"><span id="range-min-out">1000</span> – <span id="range-max-out">1800</span></div>
+        <div class="range-slider">
+          <div class="range-track"><div id="range-fill" class="range-fill"></div></div>
+          <input id="range-min" type="range" min="600" max="2400" step="50" value="1000" aria-label="Minimum rating">
+          <input id="range-max" type="range" min="600" max="2400" step="50" value="1800" aria-label="Maximum rating">
+        </div>
+        <div class="range-scale"><span>600</span><span>Beginner</span><span>Intermediate</span><span>Advanced</span><span>2400</span></div>
+      </div>
+
+      <h3 class="section-label">Theme</h3>
+      <div id="theme-grid" class="theme-grid"></div>
+    </div>
+  </section>
+
+  <!-- Puzzle -->
+  <section id="puzzle" class="screen" hidden>
+    <header class="topbar">
+      <button class="btn btn-ghost back-btn" data-action="menu">← Menu</button>
+      <span id="mode-label" class="mode-label"></span>
+    </header>
+    <div class="puzzle-layout">
+      <div id="board" class="board-wrap"></div>
+      <aside class="panel side-panel">
+        <div class="turn"><span id="turn-dot" class="turn-dot"></span><span id="turn-text">You play White</span></div>
+        <p id="status" class="status">Loading…</p>
+
+        <div class="streaks">
+          <div class="stat"><span class="stat-value" id="streak">0</span><span class="stat-label">Streak</span></div>
+          <div class="stat"><span class="stat-value" id="best">0</span><span class="stat-label">Best</span></div>
+        </div>
+
+        <dl class="info">
+          <div><dt>Rating</dt><dd id="rating">–</dd></div>
+          <div>
+            <dt>Themes
+              <button id="themes-toggle" class="link-btn" aria-pressed="false">Show</button>
+            </dt>
+            <dd id="themes" class="themes" hidden></dd>
+            <dd id="themes-hidden" class="themes-hidden">Hidden so they don't give the answer away</dd>
+          </div>
+        </dl>
+
+        <div class="actions">
+          <button id="next-btn" class="btn btn-primary" hidden>Next puzzle →</button>
+          <button id="skip-btn" class="btn btn-ghost">Skip puzzle</button>
+        </div>
+        <a id="lichess-link" class="lichess-link" target="_blank" rel="noopener">View on Lichess ↗</a>
+      </aside>
+    </div>
+  </section>
+</body>
+</html>

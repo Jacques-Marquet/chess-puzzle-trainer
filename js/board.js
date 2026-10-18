@@ -84,7 +84,9 @@ export class Board {
     this.clearBadge();
     const badge = document.createElement("div");
     badge.className = `badge badge-${kind}`;
-    badge.textContent = kind === "correct" ? "✓" : "✗";
+    const icon = document.createElement("span");
+    icon.textContent = kind === "correct" ? "✓" : "✗";
+    badge.append(icon);
     this.placeAt(badge, square);
     this.overlayLayer.append(badge);
     this.badge = badge;
@@ -224,7 +226,9 @@ export class Board {
     let promotion = "";
     if (options.some((m) => m.promotion)) {
       const piece = this.pieces.get(from);
+      piece.classList.remove("dragging");
       this.placeAt(piece, to);
+      this.deselect();
       promotion = await this.choosePromotion(to);
       if (!promotion) {
         // Cancelled: put the pawn back.
