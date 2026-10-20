@@ -7,7 +7,8 @@
 
 import { Chess } from "../vendor/chess.js";
 
-// After this many wrong tries on the same move, hintSquare() reveals the piece to move.
+// After this many wrong tries on the same move, hintSquare() reveals the piece
+// to move. requestHint() reveals it straight away.
 export const HINT_AFTER = 3;
 
 export class PuzzleSession {
@@ -20,6 +21,9 @@ export class PuzzleSession {
     this.gaveUp = false;    // the player asked to see the solution
     this.wrongAttempts = 0; // wrong tries on the current move
     this.mistakes = 0;      // wrong tries over the whole puzzle
+    this.hintRequested = false; // asked for a hint on the current move
+    this.usedHint = false;      // asked for a hint at any point
+    this.lastCapture = false;   // whether the last move played captured a piece
   }
 
   /** True once the puzzle is over: solved, or the solution was shown. */
@@ -27,9 +31,9 @@ export class PuzzleSession {
     return this.solved || this.gaveUp;
   }
 
-  /** Solved without a single wrong move. */
+  /** Solved without a single wrong move or a requested hint. */
   get firstTry() {
-    return this.solved && this.mistakes === 0;
+    return this.solved && this.mistakes === 0 && !this.usedHint;
   }
 
   /** "white" or "black": the side the player solves for (moves after moves[0]). */
@@ -46,7 +50,7 @@ export class PuzzleSession {
     const move = this.puzzle.moves[0];
     this.play(move);
     this.ply = 1;
-    return { move, fen: this.fen };
+    return { move, fen: this.fen, capture: this.lastCapture };
   }
 
   /** Legal destinations for the piece on `square`, if it is the player's turn. */
@@ -59,8 +63,17 @@ export class PuzzleSession {
 
   /** The square of the piece that should move, once the player has earned a hint. */
   hintSquare() {
-    if (this.finished || this.ply === 0 || this.wrongAttempts < HINT_AFTER) return null;
+    if (this.finished || this.ply === 0) return null;
+    if (!this.hintRequested && this.wrongAttempts < HINT_AFTER) return null;
     return this.puzzle.moves[this.ply].slice(0, 2);
+  }
+
+  /** Ask for a hint now. Returns the hint square (null if no move is due). */
+  requestHint() {
+    if (this.finished || this.ply === 0) return null;
+    this.hintRequested = true;
+    this.usedHint = true;
+    return this.hintSquare();
   }
 
   /** Square of the king in check, or null. Used for the red check highlight. */
@@ -91,6 +104,7 @@ export class PuzzleSession {
     const previousLastMove = this.lastMove;
     if (!this.play(uci)) return { correct: false, illegal: true };
     const fenAfter = this.fen;
+    const capture = this.lastCapture;
 
     const expected = this.puzzle.moves[this.ply];
     const correct = uci === expected || this.chess.isCheckmate();
@@ -99,14 +113,15 @@ export class PuzzleSession {
       this.lastMove = previousLastMove;
       this.wrongAttempts++;
       this.mistakes++;
-      return { correct: false, fenAfter };
+      return { correct: false, fenAfter, capture };
     }
 
     this.ply++;
     this.wrongAttempts = 0;
+    this.hintRequested = false;
     if (this.chess.isCheckmate() || this.ply >= this.puzzle.moves.length) {
       this.solved = true;
-      return { correct: true, solved: true, fen: fenAfter };
+      return { correct: true, solved: true, fen: fenAfter, capture };
     }
 
     const replyMove = this.puzzle.moves[this.ply];
@@ -117,14 +132,15 @@ export class PuzzleSession {
       correct: true,
       solved: this.solved,
       fen: fenAfter,
-      reply: { move: replyMove, fen: this.fen },
+      capture,
+      reply: { move: replyMove, fen: this.fen, capture: this.lastCapture },
     };
   }
 
   /**
    * Give up: play out the rest of the solution, both sides' moves. Returns
-   * them in order as [{ move, fen, check }] so the UI can animate each one
-   * (check is the square of a king in check after that move, or null).
+   * them in order as [{ move, fen, check, capture }] so the UI can animate
+   * each one (check is the square of a king in check after that move, or null).
    */
   revealSolution() {
     if (this.finished || this.ply === 0) return [];
@@ -133,7 +149,7 @@ export class PuzzleSession {
       const move = this.puzzle.moves[this.ply];
       this.play(move);
       this.ply++;
-      steps.push({ move, fen: this.fen, check: this.checkSquare() });
+      steps.push({ move, fen: this.fen, check: this.checkSquare(), capture: this.lastCapture });
     }
     this.gaveUp = true;
     return steps;
@@ -141,12 +157,14 @@ export class PuzzleSession {
 
   /** Play a UCI move on the internal board; returns false if it is illegal. */
   play(uci) {
+    let move;
     try {
-      this.chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
+      move = this.chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
     } catch {
       return false; // chess.js throws on illegal moves
     }
     this.lastMove = uci;
+    this.lastCapture = Boolean(move.captured); // includes en passant
     return true;
   }
 }

@@ -130,6 +130,7 @@
     <header class="topbar">
       <button class="btn btn-ghost back-btn" data-action="menu">← Menu</button>
       <span id="mode-label" class="mode-label"></span>
+      <button id="mute-btn" class="btn btn-ghost mute-btn" aria-pressed="false" aria-label="Mute sounds">🔊</button>
     </header>
     <div class="puzzle-layout">
       <div id="board" class="board-wrap"></div>
@@ -155,11 +156,15 @@
 
         <div class="actions">
           <button id="next-btn" class="btn btn-primary" hidden>Next puzzle →</button>
-          <button id="solution-btn" class="btn btn-secondary" disabled>Show solution</button>
+          <div id="help-row" class="help-row">
+            <button id="hint-btn" class="btn btn-secondary" title="Highlight the piece to move (H)" disabled>Hint</button>
+            <button id="solution-btn" class="btn btn-secondary" title="Play out the solution (S)" disabled>Show solution</button>
+          </div>
           <button id="skip-btn" class="btn btn-ghost" title="Skipping counts as a miss and resets your streak" aria-describedby="skip-note">Skip puzzle</button>
           <p id="skip-note" class="skip-note">Skipping resets your streak</p>
         </div>
         <a id="lichess-link" class="lichess-link" target="_blank" rel="noopener">View on Lichess ↗</a>
+        <p class="shortcuts"><kbd>H</kbd> hint · <kbd>S</kbd> solution · <kbd>N</kbd> next · <kbd>Esc</kbd> menu</p>
       </aside>
     </div>
   </section>

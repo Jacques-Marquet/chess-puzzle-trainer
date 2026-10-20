@@ -181,6 +181,41 @@ test("a revealed puzzle is never a first try", () => {
   assert.equal(s.firstTry, false);
 });
 
+test("requestHint() shows the piece to move straight away, for this move only", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  assert.equal(s.requestHint(), null); // nothing to hint before the start
+  s.start();
+  assert.equal(s.requestHint(), "e1");
+  assert.equal(s.hintSquare(), "e1");
+  s.tryMove("e1e8");
+  assert.equal(s.hintSquare(), null); // the next move needs a new request
+  s.tryMove("e8d8");
+  assert.equal(s.solved, true);
+  assert.equal(s.mistakes, 0);
+  assert.equal(s.firstTry, false); // a hint means it wasn't solved unaided
+});
+
+test("moves report whether they captured, including en passant", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  assert.equal(s.start().capture, true);             // Bxf8 takes the queen
+  const r = s.tryMove("e1e8");
+  assert.equal(r.capture, false);
+  assert.equal(r.reply.capture, false);               // Rd8 blocks
+  assert.equal(s.tryMove("e8d8").capture, true);      // Rxd8#
+
+  const enPassant = new PuzzleSession({
+    id: "ep", fen: "4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1", moves: ["d7d5", "e5d6"], rating: 600, themes: [],
+  });
+  assert.equal(enPassant.start().capture, false);
+  assert.equal(enPassant.tryMove("e5d6").capture, true);
+});
+
+test("revealed moves report captures", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  s.start();
+  assert.deepEqual(s.revealSolution().map((x) => x.capture), [false, false, true]);
+});
+
 test("revealSolution() plays out every remaining move and ends the puzzle", () => {
   const s = new PuzzleSession(BACK_RANK);
   s.start();

@@ -7,6 +7,7 @@ import { Board, wait } from "./board.js";
 import { PuzzleSession } from "./puzzle.js";
 import { Streak } from "./streak.js";
 import { SolvedPuzzles } from "./progress.js";
+import { Sounds } from "./sound.js";
 import { AttemptLog, summarize, accuracyByTheme, accuracyByRating, weakestTheme, MIN_ATTEMPTS_FOR_WEAKEST } from "./stats.js";
 import { filterPuzzles, PuzzleDeck, THEMES, themeLabel, MIN_RATING, MAX_RATING } from "./filter.js";
 
@@ -28,6 +29,7 @@ let recorded = false;     // whether this puzzle's attempt has been logged
 const streak = new Streak();
 const solved = new SolvedPuzzles();
 const attempts = new AttemptLog();
+const sounds = new Sounds();
 
 const board = new Board($("board"), {
   getLegalMoves: (square) => session?.legalMovesFrom(square) ?? [],
@@ -252,9 +254,10 @@ async function loadNextPuzzle(puzzle = deck.next()) {
 
   await wait(OPENING_DELAY_MS);
   if (token !== loadToken) return;
-  const { move, fen } = session.start();
+  const { move, fen, capture } = session.start();
   await board.animateMove(move, fen, { lastMove: move, check: session.checkSquare() });
   if (token !== loadToken) return;
+  sounds.move(capture);
 
   setStatus(`Find the best move for ${capitalize(session.playerColor)}.`);
   turnStartedAt = performance.now();
@@ -274,6 +277,7 @@ async function handlePlayerMove(uci) {
   }
 
   if (!result.correct) {
+    sounds.play("wrong");
     streak.wrong();
     updateStreak();
     // Briefly show the wrong move with a red cross, then take it back.
@@ -294,8 +298,10 @@ async function handlePlayerMove(uci) {
   updateStreak();
   board.setPosition(result.fen, { lastMove: uci, check: result.solved ? session.checkSquare() : null });
   board.showBadge(to, "correct");
+  sounds.move(result.capture);
 
   if (result.solved) {
+    sounds.play("solved");
     solved.add(session.puzzle.id);
     recordAttempt("solved");
     setStatus("Puzzle solved! 🎉", "solved");
@@ -306,9 +312,10 @@ async function handlePlayerMove(uci) {
   setStatus("Correct! Keep going…", "correct");
   await wait(REPLY_DELAY_MS);
   if (token !== loadToken) return;
-  const { move, fen } = result.reply;
+  const { move, fen, capture } = result.reply;
   await board.animateMove(move, fen, { lastMove: move, check: session.checkSquare() });
   if (token !== loadToken) return;
+  sounds.move(capture);
   board.clearBadge();
   setStatus(`Your move again – find the best continuation.`);
   setPlayerTurn(true);
@@ -341,14 +348,24 @@ async function showSolution() {
   setStatus("Here's the solution…", "reveal");
   const steps = session.revealSolution();
   recordAttempt("revealed");
-  for (const { move, fen, check } of steps) {
+  for (const { move, fen, check, capture } of steps) {
     await wait(REPLY_DELAY_MS);
     if (token !== loadToken) return;
     await board.animateMove(move, fen, { lastMove: move, check });
     if (token !== loadToken) return;
+    sounds.move(capture);
   }
   setStatus("Solution shown – that one counts as a miss.", "reveal");
   setFinished(true);
+}
+
+/** Highlight the piece to move now (H key or the Hint button). */
+function showHint() {
+  if (!session || session.finished || !board.interactive) return;
+  const hint = session.requestHint();
+  if (!hint) return;
+  board.setPosition(session.fen, { lastMove: session.lastMove, check: session.checkSquare(), hint });
+  setStatus("Hint: the highlighted piece is the one to move.", "hint");
 }
 
 /** Skipping counts as a miss, so it can't be used to protect a streak. */
@@ -373,16 +390,17 @@ function recordAttempt(outcome) {
   });
 }
 
-/** Only the player's turn allows moving pieces or asking for the solution. */
+/** Only the player's turn allows moving pieces or asking for help. */
 function setPlayerTurn(on) {
   board.setInteractive(on);
+  $("hint-btn").disabled = !on;
   $("solution-btn").disabled = !on;
 }
 
 /** Puzzle over (solved or solution shown): offer Next instead of Skip. */
 function setFinished(finished) {
   $("next-btn").hidden = !finished;
-  $("solution-btn").hidden = finished;
+  $("help-row").hidden = finished;
   $("skip-btn").hidden = finished;
   $("skip-note").hidden = finished;
   $("lichess-link").hidden = !finished;
@@ -404,6 +422,44 @@ function updateStreak() {
 $("next-btn").addEventListener("click", () => loadNextPuzzle());
 $("skip-btn").addEventListener("click", skipPuzzle);
 $("solution-btn").addEventListener("click", showSolution);
+$("hint-btn").addEventListener("click", showHint);
+
+// Mute toggle, remembered between visits.
+function updateMuteButton() {
+  $("mute-btn").textContent = sounds.muted ? "🔇" : "🔊";
+  $("mute-btn").setAttribute("aria-pressed", String(sounds.muted));
+  $("mute-btn").setAttribute("aria-label", sounds.muted ? "Unmute sounds" : "Mute sounds");
+}
+$("mute-btn").addEventListener("click", () => {
+  sounds.setMuted(!sounds.muted);
+  updateMuteButton();
+});
+
+// ---------- keyboard shortcuts ----------
+// N or Enter: next puzzle (once finished) · H: hint · S: show solution · Esc: menu
+
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const screen = document.querySelector(".screen:not([hidden])")?.id;
+  if (e.key === "Escape") {
+    if (screen && screen !== "menu" && allPuzzles.length) goToMenu();
+    return;
+  }
+  if (screen !== "puzzle" || !session) return;
+  // A focused button already handles Enter itself (e.g. Next puzzle).
+  const onControl = e.target instanceof Element && e.target.closest("button, a, input");
+  const key = e.key.toLowerCase();
+  if (key === "n" || (key === "enter" && !onControl)) {
+    if (session.finished) {
+      e.preventDefault();
+      loadNextPuzzle();
+    }
+  } else if (key === "h") {
+    showHint();
+  } else if (key === "s") {
+    showSolution();
+  }
+});
 
 // Theme visibility toggle, remembered between visits.
 function setThemesVisible(show) {
@@ -425,6 +481,7 @@ const capitalize = (s) => s[0].toUpperCase() + s.slice(1);
 
 async function init() {
   setThemesVisible(loadThemesPreference());
+  updateMuteButton();
   updateStreak();
   buildThemeButtons();
   loadRange();

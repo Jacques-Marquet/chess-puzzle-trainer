@@ -345,7 +345,8 @@ svg.menu-btn-icon circle { fill: #3a362f; }
 
 /* ---------- puzzle screen ---------- */
 .topbar { display: flex; align-items: center; gap: 12px; margin: -8px 0 12px -12px; }
-.mode-label { color: var(--text-muted); font-size: 0.95rem; }
+.mode-label { color: var(--text-muted); font-size: 0.95rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mute-btn { font-size: 1.15rem; padding: 6px 10px; line-height: 1; }
 
 .puzzle-layout {
   display: flex;
@@ -409,13 +410,32 @@ svg.menu-btn-icon circle { fill: #3a362f; }
 
 .actions { display: flex; flex-direction: column; gap: 8px; }
 .actions .btn-primary { font-size: 1.05rem; padding: 12px; }
+.help-row { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.help-row[hidden] { display: none; }
 .skip-note { margin: -6px 0 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
 .lichess-link { font-size: 0.85rem; text-align: center; }
+.shortcuts { margin: -6px 0 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+kbd {
+  font: inherit; font-size: 0.7rem; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px;
+  border: 1px solid var(--border); border-bottom-width: 2px;
+  background: var(--bg-hover); color: var(--text);
+}
+/* Touch screens have no keyboard, so hide the shortcut list. */
+@media (hover: none) { .shortcuts { display: none; } }
 
 @media (max-width: 860px) {
-  .puzzle-layout { flex-direction: column; align-items: center; }
+  .puzzle-layout { flex-direction: column; align-items: center; gap: 12px; }
   .board-wrap { width: min(100%, 560px); }
-  .side-panel { flex: none; width: min(100%, 560px); }
+  .side-panel { flex: none; width: min(100%, 560px); padding: 14px; gap: 12px; }
+  /* On a phone, keep what you need while solving right under the board. */
+  .turn { order: 1; font-size: 1rem; }
+  .status { order: 2; min-height: 0; }
+  .actions { order: 3; }
+  .lichess-link { order: 4; }
+  .streaks { order: 5; }
+  .info { order: 6; }
+  .shortcuts { order: 7; }
   .menu-board { width: min(260px, 66vw); }
   .menu-card { gap: 40px; padding-top: 16px; }
   .menu-content { text-align: center; }
@@ -424,6 +444,9 @@ svg.menu-btn-icon circle { fill: #3a362f; }
   .stats-columns { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
+  .screen { padding: 12px 10px 28px; }
+  .topbar { margin: -4px 0 8px -6px; }
+  .stat-value { font-size: 1.5rem; }
   .stats-panel, .levels-panel { padding: 16px 16px 24px; }
   .stats-summary .stat-value { font-size: 1.5rem; }
   .bar-row { grid-template-columns: 7em 1fr 6.5em; font-size: 0.8rem; }

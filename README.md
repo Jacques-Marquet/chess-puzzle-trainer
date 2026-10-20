@@ -21,7 +21,9 @@ hosted on GitHub Pages.
   - The board is oriented from your side: if you play Black, Black is at the bottom.
   - Move by **drag-and-drop** or **click-to-move**. Legal moves are shown as dots.
   - A green ✓ means correct and a red ✗ means incorrect. A wrong move is taken back so you can try again.
-  - **Hint**: after three wrong tries on the same move, the piece you should move is highlighted.
+  - **Hint**: after three wrong tries on the same move, the piece you should move is
+    highlighted. You can also ask for one straight away with the **Hint** button or <kbd>H</kbd>,
+    but then the puzzle no longer counts as a first-try solve.
   - **Show solution**: if you're stuck, the rest of the solution is played out move by move.
     This counts as a miss, so it resets your streak.
   - **Arrows, chess.com style**: right-click and drag to draw an arrow (knight moves get an
@@ -35,6 +37,12 @@ hosted on GitHub Pages.
 - **Streaks**: counts correct moves in a row. A wrong move, **Show solution** or
   **Skip puzzle** all reset it, so you can't skip hard puzzles to protect a streak.
   Your best streak is saved in the browser (`localStorage`).
+- **Sounds** for moves, captures, wrong moves and solved puzzles, with a 🔊/🔇 mute
+  button that is remembered between visits.
+- **Keyboard shortcuts**: <kbd>N</kbd> or <kbd>Enter</kbd> next puzzle (once solved),
+  <kbd>H</kbd> hint, <kbd>S</kbd> show solution, <kbd>Esc</kbd> back to the menu.
+- **Works on phones**: the board fills the screen width, pieces can be dragged by touch,
+  and the status and buttons sit directly under the board.
 - **Stats**: every finished puzzle (solved, revealed or skipped) is logged in the browser
   with its rating, themes, wrong-move count and time taken. The Stats page shows:
   - puzzles attempted, first-try solve rate and average time
@@ -43,7 +51,7 @@ hosted on GitHub Pages.
   - a **Practise weakest theme** button, which starts a session for that theme within your
     Level Select rating range (the range is remembered between visits)
 
-  "First try" means solved with no wrong moves. A theme needs at least 3 attempts before
+  "First try" means solved with no wrong moves and no requested hint. A theme needs at least 3 attempts before
   it can be picked as your weakest, so one unlucky miss doesn't decide it.
 - **No repeats across visits**: puzzles you've solved are remembered in the browser,
   and new sessions serve puzzles you haven't solved yet. Only when every puzzle matching
@@ -69,8 +77,10 @@ js/filter.js            filter by rating/theme; a shuffled "deck", unsolved puzz
 js/streak.js            current and best streak, persisted to localStorage
 js/progress.js          SolvedPuzzles: IDs of puzzles you've solved, persisted to localStorage
 js/stats.js             AttemptLog plus pure stats maths: summary, by theme, by rating band, weakest theme
+js/sound.js             move/capture/wrong/solved sounds and the mute setting
 vendor/chess.js         chess.js 1.4.0 (move legality, checkmate detection)
 assets/pieces/          cburnett SVG piece set
+assets/sounds/          four short sound effects (Kenney, CC0)
 data/puzzles.json       the 5,000 puzzles the app loads
 scripts/build_puzzles.py   builds data/puzzles.json from the Lichess database
 tests/                  JavaScript unit tests (Node's built-in test runner)
@@ -84,7 +94,10 @@ tests/                  JavaScript unit tests (Node's built-in test runner)
   directly, so tests can pass in a fake one.
 - `board.js` is a reusable UI component. It knows nothing about chess rules: it
   asks its owner which moves are legal and reports the move the user made.
-- `app.js` connects the two.
+- `app.js` connects the two, and handles the keyboard shortcuts.
+- Sounds need to know whether a move was a capture. Rather than teach the board
+  chess rules (en passant captures a piece that isn't on the destination square),
+  `PuzzleSession` reports `capture` for every move it plays, taken from chess.js.
 
 **Why a custom board?** Popular board libraries are either GPL-licensed or
 depend on jQuery. A ~350-line component using Pointer Events gives drag-and-drop
@@ -183,6 +196,7 @@ The **JavaScript tests** cover:
 - solving a puzzle
 - showing the solution part-way through
 - counting mistakes and deciding what counts as a first-try solve
+- asking for a hint, and reporting captures (including en passant)
 - the stats maths: summary, theme sorting and tie-breaks, rating band edges, the weakest-theme minimum
 - the attempt log's size cap and its handling of corrupted storage
 - filtering by rating and theme
@@ -202,3 +216,7 @@ distribution, top-up of short cells, seed determinism and output format.
 - Chess rules: [chess.js](https://github.com/jhlywa/chess.js), BSD-2-Clause (`vendor/chess.LICENSE`).
 - Pieces: "cburnett" set by Colin M.L. Burnett, CC BY-SA 3.0.
 - Title font: Playfair Display (SIL Open Font License), via Google Fonts.
+- Sounds: [Impact Sounds](https://kenney.nl/assets/impact-sounds) by Kenney, CC0
+  (`assets/sounds/LICENSE.txt`). The files used are `impactWood_light_002` (move),
+  `impactWood_heavy_000` (capture), `impactSoft_heavy_000` (wrong) and
+  `impactBell_heavy_004` (solved), renamed.
