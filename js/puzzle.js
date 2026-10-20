@@ -17,7 +17,13 @@ export class PuzzleSession {
     this.ply = 0;           // index of the next move in puzzle.moves
     this.lastMove = null;
     this.solved = false;
+    this.gaveUp = false;    // the player asked to see the solution
     this.wrongAttempts = 0; // wrong tries on the current move
+  }
+
+  /** True once the puzzle is over: solved, or the solution was shown. */
+  get finished() {
+    return this.solved || this.gaveUp;
   }
 
   /** "white" or "black": the side the player solves for (moves after moves[0]). */
@@ -39,7 +45,7 @@ export class PuzzleSession {
 
   /** Legal destinations for the piece on `square`, if it is the player's turn. */
   legalMovesFrom(square) {
-    if (this.solved || this.ply === 0) return [];
+    if (this.finished || this.ply === 0) return [];
     return this.chess
       .moves({ square, verbose: true })
       .map((m) => ({ to: m.to, promotion: m.promotion }));
@@ -47,7 +53,7 @@ export class PuzzleSession {
 
   /** The square of the piece that should move, once the player has earned a hint. */
   hintSquare() {
-    if (this.solved || this.ply === 0 || this.wrongAttempts < HINT_AFTER) return null;
+    if (this.finished || this.ply === 0 || this.wrongAttempts < HINT_AFTER) return null;
     return this.puzzle.moves[this.ply].slice(0, 2);
   }
 
@@ -74,7 +80,7 @@ export class PuzzleSession {
    *          correct, even if the stored solution is a different move.
    */
   tryMove(uci) {
-    if (this.solved || this.ply === 0) return { correct: false, illegal: true };
+    if (this.finished || this.ply === 0) return { correct: false, illegal: true };
 
     const previousLastMove = this.lastMove;
     if (!this.play(uci)) return { correct: false, illegal: true };
@@ -106,6 +112,24 @@ export class PuzzleSession {
       fen: fenAfter,
       reply: { move: replyMove, fen: this.fen },
     };
+  }
+
+  /**
+   * Give up: play out the rest of the solution, both sides' moves. Returns
+   * them in order as [{ move, fen, check }] so the UI can animate each one
+   * (check is the square of a king in check after that move, or null).
+   */
+  revealSolution() {
+    if (this.finished || this.ply === 0) return [];
+    const steps = [];
+    while (this.ply < this.puzzle.moves.length) {
+      const move = this.puzzle.moves[this.ply];
+      this.play(move);
+      this.ply++;
+      steps.push({ move, fen: this.fen, check: this.checkSquare() });
+    }
+    this.gaveUp = true;
+    return steps;
   }
 
   /** Play a UCI move on the internal board; returns false if it is illegal. */

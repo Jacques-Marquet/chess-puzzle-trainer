@@ -85,6 +85,8 @@ h1, h2, h3 { margin: 0; line-height: 1.15; }
 .btn-primary:hover:not(:disabled) { background: var(--green-light); }
 .btn-ghost { background: transparent; color: var(--text-muted); padding: 8px 12px; }
 .btn-ghost:hover:not(:disabled) { color: var(--text); background: var(--bg-hover); }
+.btn-secondary { background: transparent; border: 1px solid rgb(217 164 65 / 0.55); color: var(--accent); }
+.btn-secondary:hover:not(:disabled) { background: rgb(217 164 65 / 0.12); }
 
 .link-btn {
   font: inherit;
@@ -351,6 +353,7 @@ svg.menu-btn-icon circle { fill: #3a362f; }
 .status.solved { background: rgb(98 153 36 / 0.22); font-weight: 700; }
 .status.wrong { border-left-color: var(--red); }
 .status.hint { border-left-color: rgb(66 153 255); }
+.status.reveal { border-left-color: var(--accent); }
 
 .streaks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat {

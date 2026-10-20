@@ -22,6 +22,8 @@ hosted on GitHub Pages.
   - Move by **drag-and-drop** or **click-to-move**. Legal moves are shown as dots.
   - A green ✓ means correct and a red ✗ means incorrect. A wrong move is taken back so you can try again.
   - **Hint**: after three wrong tries on the same move, the piece you should move is highlighted.
+  - **Show solution**: if you're stuck, the rest of the solution is played out move by move.
+    This counts as a miss, so it resets your streak.
   - **Arrows, chess.com style**: right-click and drag to draw an arrow (knight moves get an
     L-shaped arrow), or right-click a square to mark it. Doing it again removes it. Arrows
     clear as soon as you pick up a piece or left-click the board.
@@ -79,6 +81,10 @@ odd-indexed moves are yours and even-indexed moves are the opponent's replies.
 - **Correct**: it matches the solution, or it delivers checkmate. The opponent's
   next move is played and returned so the UI can animate it.
 - **Wrong**: the move is undone (`chess.undo()`) and the position is unchanged.
+
+`revealSolution()` plays the remaining stored moves and returns them as a list,
+so the UI can animate them one by one. The session is then marked `gaveUp`,
+which is different from `solved`.
 
 ## Puzzle data
 
@@ -143,6 +149,7 @@ The **JavaScript tests** cover:
 - an alternative checkmate being accepted
 - promotion
 - solving a puzzle
+- showing the solution part-way through
 - filtering by rating and theme
 - streak counting and persistence
 

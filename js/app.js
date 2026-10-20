@@ -35,7 +35,7 @@ function showScreen(id) {
 
 function goToMenu() {
   loadToken++; // cancel any puzzle animation in progress
-  board.setInteractive(false);
+  setPlayerTurn(false);
   $("menu-count").textContent = allPuzzles.length.toLocaleString();
   $("menu-best").textContent = streak.best;
   $("menu-status").hidden = true;
@@ -126,13 +126,13 @@ async function loadNextPuzzle(puzzle = deck.next()) {
   session = new PuzzleSession(puzzle);
 
   // Show the starting position from the player's side, before the opponent moves.
-  board.setInteractive(false);
+  setPlayerTurn(false);
   board.clearBadge();
   board.clearAnnotations();
   board.setOrientation(session.playerColor);
   board.setPosition(puzzle.fen);
   showPuzzleInfo(puzzle);
-  setSolved(false);
+  setFinished(false);
   setStatus("Watch the opponent's move…");
 
   await wait(OPENING_DELAY_MS);
@@ -142,18 +142,18 @@ async function loadNextPuzzle(puzzle = deck.next()) {
   if (token !== loadToken) return;
 
   setStatus(`Find the best move for ${capitalize(session.playerColor)}.`);
-  board.setInteractive(true);
+  setPlayerTurn(true);
 }
 
 async function handlePlayerMove(uci) {
   const token = loadToken;
-  board.setInteractive(false);
+  setPlayerTurn(false);
   const result = session.tryMove(uci);
   const to = uci.slice(2, 4);
 
   if (result.illegal) {
     board.setPosition(session.fen, { lastMove: session.lastMove, hint: session.hintSquare() });
-    board.setInteractive(true);
+    setPlayerTurn(true);
     return;
   }
 
@@ -170,7 +170,7 @@ async function handlePlayerMove(uci) {
     const hint = session.hintSquare(); // set after HINT_AFTER wrong tries
     board.setPosition(session.fen, { lastMove: session.lastMove, check: session.checkSquare(), hint });
     if (hint) setStatus("Hint: the highlighted piece is the one to move.", "hint");
-    board.setInteractive(true);
+    setPlayerTurn(true);
     return;
   }
 
@@ -181,7 +181,7 @@ async function handlePlayerMove(uci) {
 
   if (result.solved) {
     setStatus("Puzzle solved! 🎉", "solved");
-    setSolved(true);
+    setFinished(true);
     return;
   }
 
@@ -193,7 +193,7 @@ async function handlePlayerMove(uci) {
   if (token !== loadToken) return;
   board.clearBadge();
   setStatus(`Your move again – find the best continuation.`);
-  board.setInteractive(true);
+  setPlayerTurn(true);
 }
 
 function showPuzzleInfo(puzzle) {
@@ -211,11 +211,39 @@ function showPuzzleInfo(puzzle) {
   $("lichess-link").href = `https://lichess.org/training/${puzzle.id}`;
 }
 
-function setSolved(solved) {
-  $("next-btn").hidden = !solved;
-  $("skip-btn").hidden = solved;
-  $("lichess-link").hidden = !solved;
-  if (solved) $("next-btn").focus();
+/** Give up: animate the rest of the solution. Counts as a failed puzzle. */
+async function showSolution() {
+  if (!session || session.finished || !board.interactive) return;
+  const token = loadToken;
+  setPlayerTurn(false);
+  board.clearBadge();
+  board.clearAnnotations();
+  streak.wrong();
+  updateStreak();
+  setStatus("Here's the solution…", "reveal");
+  for (const { move, fen, check } of session.revealSolution()) {
+    await wait(REPLY_DELAY_MS);
+    if (token !== loadToken) return;
+    await board.animateMove(move, fen, { lastMove: move, check });
+    if (token !== loadToken) return;
+  }
+  setStatus("Solution shown – that one counts as a miss.", "reveal");
+  setFinished(true);
+}
+
+/** Only the player's turn allows moving pieces or asking for the solution. */
+function setPlayerTurn(on) {
+  board.setInteractive(on);
+  $("solution-btn").disabled = !on;
+}
+
+/** Puzzle over (solved or solution shown): offer Next instead of Skip. */
+function setFinished(finished) {
+  $("next-btn").hidden = !finished;
+  $("solution-btn").hidden = finished;
+  $("skip-btn").hidden = finished;
+  $("lichess-link").hidden = !finished;
+  if (finished) $("next-btn").focus();
 }
 
 function setStatus(text, kind = "") {
@@ -232,6 +260,7 @@ function updateStreak() {
 
 $("next-btn").addEventListener("click", () => loadNextPuzzle());
 $("skip-btn").addEventListener("click", () => loadNextPuzzle());
+$("solution-btn").addEventListener("click", showSolution);
 
 // Theme visibility toggle, remembered between visits.
 function setThemesVisible(show) {

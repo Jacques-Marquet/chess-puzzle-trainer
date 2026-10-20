@@ -154,6 +154,37 @@ test("hint resets once the move is found", () => {
   assert.equal(s.hintSquare(), null); // next move needs three new wrong tries
 });
 
+test("revealSolution() plays out every remaining move and ends the puzzle", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  s.start();
+  const steps = s.revealSolution();
+  assert.deepEqual(steps.map((x) => x.move), ["e1e8", "d7d8", "e8d8"]);
+  assert.deepEqual(steps.map((x) => x.check), ["b8", null, "b8"]); // Re8+, Rd8, Rxd8#
+  assert.equal(s.fen, steps[2].fen);
+  assert.equal(s.lastMove, "e8d8");
+  assert.equal(s.gaveUp, true);
+  assert.equal(s.solved, false); // giving up is not solving
+  assert.equal(s.finished, true);
+  assert.deepEqual(s.legalMovesFrom("d8"), []);
+  assert.equal(s.tryMove("a2a3").correct, false);
+});
+
+test("revealSolution() continues from where the player got to", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  s.start();
+  s.tryMove("e1e8"); // correct; the reply d7d8 is played
+  assert.deepEqual(s.revealSolution().map((x) => x.move), ["e8d8"]);
+});
+
+test("revealSolution() does nothing before the start or after solving", () => {
+  const s = new PuzzleSession(TWO_MATES);
+  assert.deepEqual(s.revealSolution(), []);
+  s.start();
+  s.tryMove("a1a8");
+  assert.deepEqual(s.revealSolution(), []);
+  assert.equal(s.gaveUp, false);
+});
+
 test("every puzzle in data/puzzles.json is legal from start to finish", () => {
   const puzzles = JSON.parse(readFileSync(new URL("../data/puzzles.json", import.meta.url)));
   assert.ok(puzzles.length >= 4000);
