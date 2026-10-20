@@ -6,27 +6,60 @@
   <title>Chess Puzzle Trainer</title>
   <meta name="description" content="Train chess tactics with real puzzles from the Lichess database.">
   <link rel="icon" href="assets/pieces/wN.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
   <!-- Menu -->
   <section id="menu" class="screen">
+    <div class="menu-bg" aria-hidden="true">
+      <div class="menu-floor"></div>
+      <div class="menu-glow"></div>
+      <img class="ghost ghost-1" src="assets/pieces/wN.svg" alt="">
+      <img class="ghost ghost-2" src="assets/pieces/wQ.svg" alt="">
+      <img class="ghost ghost-3" src="assets/pieces/wR.svg" alt="">
+      <img class="ghost ghost-4" src="assets/pieces/wB.svg" alt="">
+    </div>
+
     <div class="menu-card">
-      <div id="menu-board" class="menu-board" aria-hidden="true"></div>
+      <div class="menu-board-wrap">
+        <div id="menu-board" class="menu-board" aria-hidden="true"></div>
+      </div>
       <div class="menu-content">
-        <h1>Chess Puzzle<br>Trainer</h1>
+        <p class="eyebrow">Tactics training</p>
+        <!-- Some letters are drawn as chess pieces; aria-label gives screen readers the plain title. -->
+        <h1 class="title" aria-label="Chess Puzzle Trainer">
+          <span class="title-line" aria-hidden="true">Chess</span>
+          <span class="title-line" aria-hidden="true">Puzz<span class="glyph glyph-l"></span>e</span>
+          <span class="title-line title-accent" aria-hidden="true">Tra<span class="glyph glyph-i"></span>ner</span>
+        </h1>
         <p class="tagline">Sharpen your tactics with real positions from Lichess games.</p>
+
         <div class="menu-buttons">
-          <button id="play-btn" class="btn btn-primary btn-large" disabled>Play</button>
-          <button id="levels-btn" class="btn btn-secondary btn-large" disabled>Level Select</button>
+          <button id="play-btn" class="btn menu-btn menu-btn-play" disabled>
+            <img class="menu-btn-icon" src="assets/pieces/wN.svg" alt="">
+            <span><span class="menu-btn-title">Play</span><span class="menu-btn-sub">Random puzzles, every level and theme</span></span>
+          </button>
+          <button id="levels-btn" class="btn menu-btn menu-btn-levels" disabled>
+            <svg class="menu-btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2.2" /><circle cx="10" cy="17" r="2.2" /></svg>
+            <span><span class="menu-btn-title">Level Select</span><span class="menu-btn-sub">Choose a rating range and theme</span></span>
+          </button>
         </div>
-        <p class="menu-meta"><span id="menu-status">Loading puzzles…</span></p>
+
+        <ul class="menu-stats">
+          <li><strong id="menu-count">–</strong> puzzles</li>
+          <li><strong>9</strong> themes</li>
+          <li><strong id="menu-best">0</strong> best streak</li>
+        </ul>
+        <p id="menu-status" class="menu-meta">Loading puzzles…</p>
       </div>
     </div>
     <footer class="credits">
       Puzzles from the <a href="https://database.lichess.org/#puzzles">Lichess puzzle database</a> (CC0).
-      Pieces: cburnett (CC BY-SA 3.0).
+      Pieces: cburnett (CC BY-SA 3.0). Tip: right-click and drag on the board to draw arrows.
     </footer>
   </section>
 

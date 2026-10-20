@@ -36,7 +36,9 @@ function showScreen(id) {
 function goToMenu() {
   loadToken++; // cancel any puzzle animation in progress
   board.setInteractive(false);
-  $("menu-status").textContent = `${allPuzzles.length.toLocaleString()} puzzles · Best streak ${streak.best}`;
+  $("menu-count").textContent = allPuzzles.length.toLocaleString();
+  $("menu-best").textContent = streak.best;
+  $("menu-status").hidden = true;
   showScreen("menu");
 }
 
