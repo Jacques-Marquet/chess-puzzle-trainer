@@ -6,6 +6,7 @@
 const FILES = "abcdefgh";
 const PROMOTION_PIECES = ["q", "n", "r", "b"];
 const ANIMATION_MS = 250;
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 export class Board {
   /**
@@ -22,20 +23,30 @@ export class Board {
     this.pieces = new Map(); // square -> piece <div>
     this.selected = null;    // square the user picked up / clicked
     this.drag = null;        // state of an in-progress pointer drag
+    this.arrows = new Map(); // "e2e4" -> {from, to}: right-click arrows
+    this.marks = new Set();  // squares marked with a right-click
+    this.arrowDraw = null;   // right-button drag in progress: {from, to}
 
     this.el = document.createElement("div");
     this.el.className = "board";
     this.squaresLayer = layer("squares");
     this.highlightLayer = layer("highlights");
     this.piecesLayer = layer("pieces");
+    this.arrowLayer = document.createElementNS(SVG_NS, "svg");
+    this.arrowLayer.setAttribute("class", "layer arrows");
+    this.arrowLayer.setAttribute("viewBox", "0 0 8 8"); // 1 unit = 1 square
     this.overlayLayer = layer("overlay");
-    this.el.append(this.squaresLayer, this.highlightLayer, this.piecesLayer, this.overlayLayer);
+    this.el.append(this.squaresLayer, this.highlightLayer, this.piecesLayer, this.arrowLayer, this.overlayLayer);
     container.append(this.el);
 
     this.el.addEventListener("pointerdown", (e) => this.onPointerDown(e));
     this.el.addEventListener("pointermove", (e) => this.onPointerMove(e));
     this.el.addEventListener("pointerup", (e) => this.onPointerUp(e));
-    this.el.addEventListener("pointercancel", () => this.cancelDrag());
+    this.el.addEventListener("pointercancel", () => {
+      this.cancelDrag();
+      this.arrowDraw = null;
+      this.drawArrows();
+    });
     this.el.addEventListener("contextmenu", (e) => e.preventDefault());
 
     this.drawSquares();
@@ -49,11 +60,15 @@ export class Board {
     this.render();
   }
 
-  /** Show a position. lastMove ("e2e4") and check (a square) are highlighted. */
-  setPosition(fen, { lastMove = null, check = null } = {}) {
+  /**
+   * Show a position. lastMove ("e2e4"), check (the checked king's square) and
+   * hint (the square of the piece that should move) are highlighted.
+   */
+  setPosition(fen, { lastMove = null, check = null, hint = null } = {}) {
     this.fen = fen;
     this.lastMove = lastMove;
     this.check = check;
+    this.hint = hint;
     this.deselect();
     this.render();
   }
@@ -97,6 +112,21 @@ export class Board {
     this.badge = null;
   }
 
+  /** Replace the drawn arrows, e.g. [["c7", "e8"], ["c7", "a8"]]. */
+  setArrows(list) {
+    this.arrows = new Map(list.map(([from, to]) => [from + to, { from, to }]));
+    this.drawArrows();
+  }
+
+  /** Remove all right-click arrows and square marks. */
+  clearAnnotations() {
+    if (this.arrows.size === 0 && this.marks.size === 0) return;
+    this.arrows.clear();
+    this.marks.clear();
+    this.drawArrows();
+    this.drawHighlights();
+  }
+
   // ---------- drawing ----------
 
   drawSquares() {
@@ -129,6 +159,7 @@ export class Board {
       this.pieces.set(square, div);
     }
     this.drawHighlights();
+    this.drawArrows();
   }
 
   drawHighlights() {
@@ -144,6 +175,8 @@ export class Board {
       add(this.lastMove.slice(2, 4), "last-move");
     }
     if (this.check) add(this.check, "check");
+    for (const square of this.marks) add(square, "mark");
+    if (this.hint) add(this.hint, "hint");
     if (this.selected) {
       add(this.selected, "selected");
       for (const m of this.legalFromSelected()) {
@@ -152,12 +185,64 @@ export class Board {
     }
   }
 
-  // ---------- input: click-to-move and drag-and-drop ----------
+  drawArrows() {
+    this.arrowLayer.replaceChildren();
+    const all = [...this.arrows.values()];
+    const d = this.arrowDraw;
+    if (d && d.to !== d.from && !this.arrows.has(d.from + d.to)) all.push(d);
+    for (const { from, to } of all) this.arrowLayer.append(this.arrowShape(from, to));
+  }
+
+  /**
+   * An SVG arrow between two squares, drawn in board units (1 = one square).
+   * Knight moves get an L-shaped arrow, longer leg first, like chess.com.
+   */
+  arrowShape(from, to) {
+    const a = this.coords(from), b = this.coords(to);
+    const start = { x: a.col + 0.5, y: a.row + 0.5 };
+    const end = { x: b.col + 0.5, y: b.row + 0.5 };
+    const dx = Math.abs(b.col - a.col), dy = Math.abs(b.row - a.row);
+    const points = [start];
+    if (dx * dy === 2) {
+      points.push(dy > dx ? { x: start.x, y: end.y } : { x: end.x, y: start.y });
+    }
+    // Stop the line where the arrowhead begins so the two don't overlap.
+    const prev = points[points.length - 1];
+    const len = Math.hypot(end.x - prev.x, end.y - prev.y);
+    const ux = (end.x - prev.x) / len, uy = (end.y - prev.y) / len;
+    const HEAD_LEN = 0.42, HEAD_HALF_WIDTH = 0.27;
+    const base = { x: end.x - ux * HEAD_LEN, y: end.y - uy * HEAD_LEN };
+    points.push(base);
+
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("class", "arrow");
+    const line = document.createElementNS(SVG_NS, "polyline");
+    line.setAttribute("points", points.map((p) => `${p.x},${p.y}`).join(" "));
+    const head = document.createElementNS(SVG_NS, "polygon");
+    const nx = -uy * HEAD_HALF_WIDTH, ny = ux * HEAD_HALF_WIDTH;
+    head.setAttribute("points",
+      `${end.x},${end.y} ${base.x + nx},${base.y + ny} ${base.x - nx},${base.y - ny}`);
+    g.append(line, head);
+    return g;
+  }
+
+  // ---------- input: click-to-move, drag-and-drop, right-click arrows ----------
 
   onPointerDown(e) {
-    if (!this.interactive || e.button !== 0 || this.promoting) return;
+    if (e.button === 2) {
+      // Right button: start drawing an arrow (works even between moves).
+      const square = this.squareFromEvent(e);
+      if (!square || this.drag) return;
+      this.arrowDraw = { from: square, to: square };
+      this.el.setPointerCapture(e.pointerId);
+      return;
+    }
+    if (e.button !== 0 || this.promoting) return;
     const square = this.squareFromEvent(e);
     if (!square) return;
+    // A left click on a square you can't move from clears the annotations.
+    if (!this.selected && this.getLegalMoves(square).length === 0) this.clearAnnotations();
+    if (!this.interactive) return;
 
     // Second click of click-to-move: a legal target of the selected piece.
     if (this.selected && this.isLegalTarget(square)) {
@@ -181,6 +266,14 @@ export class Board {
   }
 
   onPointerMove(e) {
+    if (this.arrowDraw) {
+      const square = this.squareFromEvent(e);
+      if (square && square !== this.arrowDraw.to) {
+        this.arrowDraw.to = square;
+        this.drawArrows();
+      }
+      return;
+    }
     const d = this.drag;
     if (!d) return;
     if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 4) return;
@@ -195,6 +288,16 @@ export class Board {
   }
 
   onPointerUp(e) {
+    if (this.arrowDraw && e.button === 2) {
+      const { from } = this.arrowDraw;
+      const to = this.squareFromEvent(e);
+      this.arrowDraw = null;
+      if (to && to !== from) toggle(this.arrows, from + to, { from, to });
+      else if (to) toggle(this.marks, from);
+      this.drawArrows();
+      this.drawHighlights();
+      return;
+    }
     const d = this.drag;
     if (!d) return;
     this.drag = null;
@@ -245,6 +348,7 @@ export class Board {
       this.placeAt(piece, to);
     }
     this.deselect();
+    this.clearAnnotations(); // arrows are planning aids: gone once a move is made
     this.onMove(from + to + promotion);
   }
 
@@ -339,6 +443,13 @@ export function parsePlacement(fen) {
     }
   });
   return result;
+}
+
+/** Add `key` to a Map/Set if absent, remove it if present. */
+function toggle(collection, key, value) {
+  if (collection.has(key)) collection.delete(key);
+  else if (collection instanceof Map) collection.set(key, value);
+  else collection.add(key);
 }
 
 function layer(name) {

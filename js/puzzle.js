@@ -7,6 +7,9 @@
 
 import { Chess } from "../vendor/chess.js";
 
+// After this many wrong tries on the same move, hintSquare() reveals the piece to move.
+export const HINT_AFTER = 3;
+
 export class PuzzleSession {
   constructor(puzzle) {
     this.puzzle = puzzle;
@@ -14,6 +17,7 @@ export class PuzzleSession {
     this.ply = 0;           // index of the next move in puzzle.moves
     this.lastMove = null;
     this.solved = false;
+    this.wrongAttempts = 0; // wrong tries on the current move
   }
 
   /** "white" or "black": the side the player solves for (moves after moves[0]). */
@@ -39,6 +43,12 @@ export class PuzzleSession {
     return this.chess
       .moves({ square, verbose: true })
       .map((m) => ({ to: m.to, promotion: m.promotion }));
+  }
+
+  /** The square of the piece that should move, once the player has earned a hint. */
+  hintSquare() {
+    if (this.solved || this.ply === 0 || this.wrongAttempts < HINT_AFTER) return null;
+    return this.puzzle.moves[this.ply].slice(0, 2);
   }
 
   /** Square of the king in check, or null. Used for the red check highlight. */
@@ -75,10 +85,12 @@ export class PuzzleSession {
     if (!correct) {
       this.chess.undo();
       this.lastMove = previousLastMove;
+      this.wrongAttempts++;
       return { correct: false, fenAfter };
     }
 
     this.ply++;
+    this.wrongAttempts = 0;
     if (this.chess.isCheckmate() || this.ply >= this.puzzle.moves.length) {
       this.solved = true;
       return { correct: true, solved: true, fen: fenAfter };

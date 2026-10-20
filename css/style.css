@@ -209,6 +209,7 @@ h1, h2, h3 { margin: 0; line-height: 1.15; }
 .status.correct, .status.solved { border-left-color: var(--green-light); }
 .status.solved { background: rgb(98 153 36 / 0.22); font-weight: 700; }
 .status.wrong { border-left-color: var(--red); }
+.status.hint { border-left-color: rgb(66 153 255); }
 
 .streaks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat {
@@ -288,6 +289,24 @@ h1, h2, h3 { margin: 0; line-height: 1.15; }
 .hl.move-hint { background: radial-gradient(rgb(20 85 30 / 0.5) 19%, transparent 20%); }
 .hl.capture-hint { background: radial-gradient(transparent 0 79%, rgb(20 85 30 / 0.4) 80%); }
 .hl.check { background: radial-gradient(ellipse at center, #ff0000 0%, #e70000 25%, rgb(169 0 0 / 0) 89%); }
+.hl.mark { background: rgb(235 97 80 / 0.8); }
+.hl.hint {
+  background: rgb(66 153 255 / 0.45);
+  box-shadow: inset 0 0 0 0.6cqw rgb(66 153 255 / 0.95);
+  animation: hint-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes hint-pulse { from { opacity: 0.55; } to { opacity: 1; } }
+
+/* Right-click arrows (SVG, 1 unit = 1 square). Group opacity keeps overlaps even. */
+.arrows { pointer-events: none; width: 100%; height: 100%; }
+.arrow { opacity: 0.8; }
+.arrow polyline {
+  fill: none;
+  stroke: rgb(255 170 0);
+  stroke-width: 0.2;
+  stroke-linejoin: miter;
+}
+.arrow polygon { fill: rgb(255 170 0); }
 
 .overlay { pointer-events: none; z-index: 20; }
 .badge { display: flex; justify-content: flex-end; align-items: flex-start; }

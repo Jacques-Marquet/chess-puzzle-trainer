@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { PuzzleSession } from "../js/puzzle.js";
+import { PuzzleSession, HINT_AFTER } from "../js/puzzle.js";
 
 // Real puzzle 4VfTC from the Lichess database (mate in 2, player is White).
 const BACK_RANK = {
@@ -130,6 +130,28 @@ test("checkSquare() finds the king in check", () => {
   t.start();
   t.tryMove("a1a8");
   assert.equal(t.checkSquare(), "h8");
+});
+
+test("hint: the piece to move is revealed after three wrong tries", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  s.start();
+  assert.equal(HINT_AFTER, 3);
+  s.tryMove("a2a3");
+  s.tryMove("a2a4");
+  assert.equal(s.hintSquare(), null); // only two wrong tries so far
+  s.tryMove("e1d2");                  // illegal moves don't count
+  assert.equal(s.hintSquare(), null);
+  s.tryMove("b2b3");
+  assert.equal(s.hintSquare(), "e1"); // the rook on e1 should move
+});
+
+test("hint resets once the move is found", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  s.start();
+  for (const m of ["a2a3", "a2a4", "b2b3"]) s.tryMove(m);
+  assert.equal(s.tryMove("e1e8").correct, true);
+  assert.equal(s.wrongAttempts, 0);
+  assert.equal(s.hintSquare(), null); // next move needs three new wrong tries
 });
 
 test("every puzzle in data/puzzles.json is legal from start to finish", () => {

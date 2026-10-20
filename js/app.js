@@ -52,6 +52,7 @@ menuBoard.setPosition("r3k2r/ppN2ppp/2n5/8/8/8/PPP2PPP/R3K2R b KQkq - 0 1", {
   lastMove: "d5c7",
   check: "e8",
 });
+menuBoard.setArrows([["c7", "e8"], ["c7", "a8"]]);
 
 $("play-btn").addEventListener("click", () => {
   startTraining(allPuzzles, "Play · All puzzles");
@@ -125,6 +126,7 @@ async function loadNextPuzzle(puzzle = deck.next()) {
   // Show the starting position from the player's side, before the opponent moves.
   board.setInteractive(false);
   board.clearBadge();
+  board.clearAnnotations();
   board.setOrientation(session.playerColor);
   board.setPosition(puzzle.fen);
   showPuzzleInfo(puzzle);
@@ -148,7 +150,7 @@ async function handlePlayerMove(uci) {
   const to = uci.slice(2, 4);
 
   if (result.illegal) {
-    board.setPosition(session.fen, { lastMove: session.lastMove });
+    board.setPosition(session.fen, { lastMove: session.lastMove, hint: session.hintSquare() });
     board.setInteractive(true);
     return;
   }
@@ -163,7 +165,9 @@ async function handlePlayerMove(uci) {
     await wait(WRONG_MOVE_MS);
     if (token !== loadToken) return;
     board.clearBadge();
-    board.setPosition(session.fen, { lastMove: session.lastMove, check: session.checkSquare() });
+    const hint = session.hintSquare(); // set after HINT_AFTER wrong tries
+    board.setPosition(session.fen, { lastMove: session.lastMove, check: session.checkSquare(), hint });
+    if (hint) setStatus("Hint: the highlighted piece is the one to move.", "hint");
     board.setInteractive(true);
     return;
   }
