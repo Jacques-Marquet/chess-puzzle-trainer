@@ -5,6 +5,8 @@ A static web app for training chess tactics, using 5,000 real puzzles from the
 It has no framework, no build step and no server: plain HTML, CSS and JavaScript,
 hosted on GitHub Pages.
 
+**Live demo: https://jacques-marquet.github.io/chess-puzzle-trainer/**
+
 ![Puzzle screen](docs/puzzle.png)
 
 ## Features
@@ -19,6 +21,10 @@ hosted on GitHub Pages.
   - The board is oriented from your side: if you play Black, Black is at the bottom.
   - Move by **drag-and-drop** or **click-to-move**. Legal moves are shown as dots.
   - A green ✓ means correct and a red ✗ means incorrect. A wrong move is taken back so you can try again.
+  - **Hint**: after three wrong tries on the same move, the piece you should move is highlighted.
+  - **Arrows, chess.com style**: right-click and drag to draw an arrow (knight moves get an
+    L-shaped arrow), or right-click a square to mark it. Doing it again removes it. Arrows
+    clear once a move is made.
   - **Any checkmate counts as correct**, even if it isn't the stored solution.
   - After each correct move, the opponent's reply is played automatically.
   - Pawn promotion uses a picker (queen, knight, rook, bishop).
@@ -38,7 +44,7 @@ hosted on GitHub Pages.
 index.html              the three screens (menu, level select, puzzle) as <section>s
 css/style.css           styling, including the board
 js/app.js               controller: screen switching, wires the modules together
-js/board.js             chessboard UI: rendering, drag/click input, animation, promotion picker
+js/board.js             chessboard UI: rendering, drag/click input, arrows, animation, promotion picker
 js/puzzle.js            PuzzleSession: the rules of solving a puzzle (no DOM)
 js/filter.js            filter by rating/theme; a shuffled "deck" so puzzles don't repeat
 js/streak.js            current and best streak, persisted to localStorage
@@ -151,3 +157,4 @@ distribution, top-up of short cells, seed determinism and output format.
 - Puzzles: [Lichess](https://lichess.org), CC0.
 - Chess rules: [chess.js](https://github.com/jhlywa/chess.js), BSD-2-Clause (`vendor/chess.LICENSE`).
 - Pieces: "cburnett" set by Colin M.L. Burnett, CC BY-SA 3.0.
+- Title font: Playfair Display (SIL Open Font License), via Google Fonts.
