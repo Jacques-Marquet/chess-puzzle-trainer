@@ -118,7 +118,8 @@
         <div class="actions">
           <button id="next-btn" class="btn btn-primary" hidden>Next puzzle →</button>
           <button id="solution-btn" class="btn btn-secondary" disabled>Show solution</button>
-          <button id="skip-btn" class="btn btn-ghost">Skip puzzle</button>
+          <button id="skip-btn" class="btn btn-ghost" title="Skipping counts as a miss and resets your streak" aria-describedby="skip-note">Skip puzzle</button>
+          <p id="skip-note" class="skip-note">Skipping resets your streak</p>
         </div>
         <a id="lichess-link" class="lichess-link" target="_blank" rel="noopener">View on Lichess ↗</a>
       </aside>

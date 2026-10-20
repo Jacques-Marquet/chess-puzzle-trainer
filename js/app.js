@@ -231,6 +231,13 @@ async function showSolution() {
   setFinished(true);
 }
 
+/** Skipping counts as a miss, so it can't be used to protect a streak. */
+function skipPuzzle() {
+  streak.wrong();
+  updateStreak();
+  loadNextPuzzle();
+}
+
 /** Only the player's turn allows moving pieces or asking for the solution. */
 function setPlayerTurn(on) {
   board.setInteractive(on);
@@ -242,6 +249,7 @@ function setFinished(finished) {
   $("next-btn").hidden = !finished;
   $("solution-btn").hidden = finished;
   $("skip-btn").hidden = finished;
+  $("skip-note").hidden = finished;
   $("lichess-link").hidden = !finished;
   if (finished) $("next-btn").focus();
 }
@@ -259,7 +267,7 @@ function updateStreak() {
 }
 
 $("next-btn").addEventListener("click", () => loadNextPuzzle());
-$("skip-btn").addEventListener("click", () => loadNextPuzzle());
+$("skip-btn").addEventListener("click", skipPuzzle);
 $("solution-btn").addEventListener("click", showSolution);
 
 // Theme visibility toggle, remembered between visits.

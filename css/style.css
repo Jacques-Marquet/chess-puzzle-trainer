@@ -378,6 +378,7 @@ svg.menu-btn-icon circle { fill: #3a362f; }
 
 .actions { display: flex; flex-direction: column; gap: 8px; }
 .actions .btn-primary { font-size: 1.05rem; padding: 12px; }
+.skip-note { margin: -6px 0 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
 .lichess-link { font-size: 0.85rem; text-align: center; }
 
 @media (max-width: 860px) {

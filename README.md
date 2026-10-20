@@ -32,8 +32,9 @@ hosted on GitHub Pages.
   - Pawn promotion uses a picker (queen, knight, rook, bishop).
   - When you solve a puzzle you get a success message and a **Next puzzle** button.
   - The puzzle's rating and themes are shown. Themes are hidden by default so they don't give the answer away.
-- **Streaks**: counts correct moves in a row and resets on a mistake. Your best streak
-  is saved in the browser (`localStorage`).
+- **Streaks**: counts correct moves in a row. A wrong move, **Show solution** or
+  **Skip puzzle** all reset it, so you can't skip hard puzzles to protect a streak.
+  Your best streak is saved in the browser (`localStorage`).
 - **Deep links**: `index.html#puzzle=4VfTC` opens a specific puzzle.
 
 | Menu | Level Select |
