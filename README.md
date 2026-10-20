@@ -35,20 +35,32 @@ hosted on GitHub Pages.
 - **Streaks**: counts correct moves in a row. A wrong move, **Show solution** or
   **Skip puzzle** all reset it, so you can't skip hard puzzles to protect a streak.
   Your best streak is saved in the browser (`localStorage`).
+- **Stats**: every finished puzzle (solved, revealed or skipped) is logged in the browser
+  with its rating, themes, wrong-move count and time taken. The Stats page shows:
+  - puzzles attempted, first-try solve rate and average time
+  - first-try accuracy by theme, weakest first
+  - accuracy by puzzle rating, in 200-point bands
+  - a **Practise weakest theme** button, which starts a session for that theme within your
+    Level Select rating range (the range is remembered between visits)
+
+  "First try" means solved with no wrong moves. A theme needs at least 3 attempts before
+  it can be picked as your weakest, so one unlucky miss doesn't decide it.
 - **No repeats across visits**: puzzles you've solved are remembered in the browser,
   and new sessions serve puzzles you haven't solved yet. Only when every puzzle matching
   your filter is solved do they start coming round again. **Reset progress** on the menu
-  (click twice to confirm) clears your solved puzzles and best streak.
+  (click twice to confirm) clears your solved puzzles, stats and best streak.
 - **Deep links**: `index.html#puzzle=4VfTC` opens a specific puzzle.
 
 | Menu | Level Select |
 |---|---|
 | ![Menu](docs/menu.png) | ![Level select](docs/levels.png) |
 
+![Stats page (sample data)](docs/stats.png)
+
 ## How it's built
 
 ```
-index.html              the three screens (menu, level select, puzzle) as <section>s
+index.html              the four screens (menu, level select, stats, puzzle) as <section>s
 css/style.css           styling, including the board
 js/app.js               controller: screen switching, wires the modules together
 js/board.js             chessboard UI: rendering, drag/click input, arrows, animation, promotion picker
@@ -56,6 +68,7 @@ js/puzzle.js            PuzzleSession: the rules of solving a puzzle (no DOM)
 js/filter.js            filter by rating/theme; a shuffled "deck", unsolved puzzles first
 js/streak.js            current and best streak, persisted to localStorage
 js/progress.js          SolvedPuzzles: IDs of puzzles you've solved, persisted to localStorage
+js/stats.js             AttemptLog plus pure stats maths: summary, by theme, by rating band, weakest theme
 vendor/chess.js         chess.js 1.4.0 (move legality, checkmate detection)
 assets/pieces/          cburnett SVG piece set
 data/puzzles.json       the 5,000 puzzles the app loads
@@ -65,7 +78,7 @@ tests/                  JavaScript unit tests (Node's built-in test runner)
 
 **Design.** The logic is kept separate from the display:
 
-- `puzzle.js`, `filter.js`, `streak.js` and `progress.js` are pure JavaScript with
+- `puzzle.js`, `filter.js`, `streak.js`, `progress.js` and `stats.js` are pure JavaScript with
   no browser dependencies, so they are unit-tested directly in Node. The modules
   that save data are given a storage object rather than using `localStorage`
   directly, so tests can pass in a fake one.
@@ -81,6 +94,12 @@ on both mouse and touch, with full control over feedback such as the ✓/✗ bad
 every puzzle is dealt once before any repeats. Each time it reshuffles, it only
 includes puzzles you haven't solved (`isSeen`), falling back to the full set when
 none are left. Puzzles you skip or get wrong stay "unseen", so they come back.
+
+**Stats.** `app.js` records one attempt per puzzle when it ends. The numbers are
+worked out by small pure functions in `stats.js` (`summarize`, `accuracyByTheme`,
+`accuracyByRating`, `weakestTheme`), which take the list of attempts and return
+plain objects. The page then just draws them as CSS bars. The log keeps the most
+recent 5,000 attempts so storage can't grow forever.
 
 **How a puzzle is played.** Lichess stores each puzzle as:
 
@@ -163,6 +182,9 @@ The **JavaScript tests** cover:
 - promotion
 - solving a puzzle
 - showing the solution part-way through
+- counting mistakes and deciding what counts as a first-try solve
+- the stats maths: summary, theme sorting and tie-breaks, rating band edges, the weakest-theme minimum
+- the attempt log's size cap and its handling of corrupted storage
 - filtering by rating and theme
 - the deck serving unsolved puzzles first, then falling back to solved ones
 - saving solved puzzle IDs, resetting them, and coping with blocked or corrupted storage

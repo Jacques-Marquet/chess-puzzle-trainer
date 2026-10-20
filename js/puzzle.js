@@ -19,11 +19,17 @@ export class PuzzleSession {
     this.solved = false;
     this.gaveUp = false;    // the player asked to see the solution
     this.wrongAttempts = 0; // wrong tries on the current move
+    this.mistakes = 0;      // wrong tries over the whole puzzle
   }
 
   /** True once the puzzle is over: solved, or the solution was shown. */
   get finished() {
     return this.solved || this.gaveUp;
+  }
+
+  /** Solved without a single wrong move. */
+  get firstTry() {
+    return this.solved && this.mistakes === 0;
   }
 
   /** "white" or "black": the side the player solves for (moves after moves[0]). */
@@ -92,6 +98,7 @@ export class PuzzleSession {
       this.chess.undo();
       this.lastMove = previousLastMove;
       this.wrongAttempts++;
+      this.mistakes++;
       return { correct: false, fenAfter };
     }
 

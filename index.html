@@ -47,6 +47,10 @@
             <svg class="menu-btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2.2" /><circle cx="10" cy="17" r="2.2" /></svg>
             <span><span class="menu-btn-title">Level Select</span><span class="menu-btn-sub">Choose a rating range and theme</span></span>
           </button>
+          <button id="stats-btn" class="btn menu-btn menu-btn-levels" disabled>
+            <svg class="menu-btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-9M3 20h18" /></svg>
+            <span><span class="menu-btn-title">Stats</span><span class="menu-btn-sub">Accuracy by theme and rating</span></span>
+          </button>
         </div>
 
         <ul class="menu-stats">
@@ -85,6 +89,39 @@
 
       <h3 class="section-label">Theme</h3>
       <div id="theme-grid" class="theme-grid"></div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section id="stats" class="screen" hidden>
+    <div class="panel stats-panel">
+      <header class="screen-header">
+        <button class="btn btn-ghost back-btn" data-action="menu">← Menu</button>
+        <h2>Your Stats</h2>
+      </header>
+
+      <div class="stats-summary">
+        <div class="stat"><span class="stat-value" id="stats-attempted">0</span><span class="stat-label">Attempted</span></div>
+        <div class="stat"><span class="stat-value" id="stats-rate">–</span><span class="stat-label">First-try solves</span></div>
+        <div class="stat"><span class="stat-value" id="stats-time">–</span><span class="stat-label">Average time</span></div>
+      </div>
+      <p id="stats-empty" class="stats-empty">No puzzles yet. Every puzzle you solve, skip or reveal will show up here.</p>
+
+      <div class="practise">
+        <button id="practise-btn" class="btn btn-primary" disabled>Practise weakest theme</button>
+        <p id="practise-note" class="practise-note"></p>
+      </div>
+
+      <div class="stats-columns">
+        <div>
+          <h3 class="section-label">First-try accuracy by theme <span class="section-hint">weakest first</span></h3>
+          <div id="theme-stats" class="bars"></div>
+        </div>
+        <div>
+          <h3 class="section-label">By puzzle rating</h3>
+          <div id="rating-stats" class="bars"></div>
+        </div>
+      </div>
     </div>
   </section>
 

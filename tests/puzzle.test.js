@@ -154,6 +154,33 @@ test("hint resets once the move is found", () => {
   assert.equal(s.hintSquare(), null); // next move needs three new wrong tries
 });
 
+test("firstTry: solved with no wrong moves at all", () => {
+  const clean = new PuzzleSession(BACK_RANK);
+  clean.start();
+  clean.tryMove("e1e8");
+  assert.equal(clean.firstTry, false); // not solved yet
+  clean.tryMove("e8d8");
+  assert.equal(clean.firstTry, true);
+
+  const messy = new PuzzleSession(BACK_RANK);
+  messy.start();
+  messy.tryMove("e1e8");
+  messy.tryMove("a2a3"); // wrong on the second move
+  messy.tryMove("e1d2"); // illegal: not counted
+  messy.tryMove("e8d8");
+  assert.equal(messy.solved, true);
+  assert.equal(messy.mistakes, 1);
+  assert.equal(messy.firstTry, false);
+});
+
+test("a revealed puzzle is never a first try", () => {
+  const s = new PuzzleSession(BACK_RANK);
+  s.start();
+  s.revealSolution();
+  assert.equal(s.mistakes, 0);
+  assert.equal(s.firstTry, false);
+});
+
 test("revealSolution() plays out every remaining move and ends the puzzle", () => {
   const s = new PuzzleSession(BACK_RANK);
   s.start();

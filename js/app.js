@@ -1,15 +1,17 @@
 // Wires the screens together: loads the puzzle data, handles the menu and
 // level select, and runs the puzzle screen by connecting the Board (what you
-// see) to PuzzleSession (the rules of the puzzle), Streak (the score) and
-// SolvedPuzzles (which puzzles you've already done).
+// see) to PuzzleSession (the rules of the puzzle), Streak (the score),
+// SolvedPuzzles (which puzzles you've already done) and AttemptLog (stats).
 
 import { Board, wait } from "./board.js";
 import { PuzzleSession } from "./puzzle.js";
 import { Streak } from "./streak.js";
 import { SolvedPuzzles } from "./progress.js";
+import { AttemptLog, summarize, accuracyByTheme, accuracyByRating, weakestTheme, MIN_ATTEMPTS_FOR_WEAKEST } from "./stats.js";
 import { filterPuzzles, PuzzleDeck, THEMES, themeLabel, MIN_RATING, MAX_RATING } from "./filter.js";
 
 const SHOW_THEMES_KEY = "chess-trainer:showThemes";
+const LEVEL_RANGE_KEY = "chess-trainer:levelRange";
 const OPENING_DELAY_MS = 500;  // pause before the opponent's first move
 const REPLY_DELAY_MS = 400;    // pause before the opponent's reply
 const WRONG_MOVE_MS = 700;     // how long a wrong move stays on the board
@@ -21,8 +23,11 @@ let allPuzzles = [];
 let deck = null;
 let session = null;
 let loadToken = 0; // bumps on every new puzzle so stale async steps stop
+let turnStartedAt = null; // when the player could first move, for timing
+let recorded = false;     // whether this puzzle's attempt has been logged
 const streak = new Streak();
 const solved = new SolvedPuzzles();
+const attempts = new AttemptLog();
 
 const board = new Board($("board"), {
   getLegalMoves: (square) => session?.legalMovesFrom(square) ?? [],
@@ -68,6 +73,7 @@ $("levels-btn").addEventListener("click", () => {
   updateRange();
   showScreen("levels");
 });
+$("stats-btn").addEventListener("click", showStats);
 
 // "Reset progress" asks for a second click instead of a pop-up dialog.
 const RESET_CONFIRM_MS = 4000;
@@ -76,11 +82,12 @@ let resetTimer = null;
 $("reset-btn").addEventListener("click", () => {
   if (!$("reset-btn").classList.contains("armed")) {
     $("reset-btn").classList.add("armed");
-    $("reset-btn").textContent = "Click again to clear solved puzzles and best streak";
+    $("reset-btn").textContent = "Click again to clear solved puzzles, stats and best streak";
     resetTimer = setTimeout(disarmReset, RESET_CONFIRM_MS);
     return;
   }
   solved.clear();
+  attempts.clear();
   streak.reset();
   updateStreak();
   goToMenu();
@@ -112,6 +119,7 @@ function updateRange(changed) {
   const pct = (v) => ((v - MIN_RATING) / (MAX_RATING - MIN_RATING)) * 100;
   $("range-fill").style.left = `${pct(lo)}%`;
   $("range-fill").style.right = `${100 - pct(hi)}%`;
+  try { localStorage.setItem(LEVEL_RANGE_KEY, JSON.stringify([lo, hi])); } catch { /* ignore */ }
   // Show how many puzzles each theme button would give.
   for (const btn of $("theme-grid").children) {
     const n = filterPuzzles(allPuzzles, { minRating: lo, maxRating: hi, theme: btn.dataset.theme || null }).length;
@@ -131,14 +139,89 @@ function buildThemeButtons() {
     btn.dataset.theme = tag;
     btn.innerHTML = `<span class="theme-name"></span><span class="count"></span>`;
     btn.querySelector(".theme-name").textContent = label;
-    btn.addEventListener("click", () => {
-      const lo = Number(rangeMin.value), hi = Number(rangeMax.value);
-      const list = filterPuzzles(allPuzzles, { minRating: lo, maxRating: hi, theme: tag || null });
-      startTraining(list, `${label} · ${lo}–${hi}`);
-    });
+    btn.addEventListener("click", () => startThemeTraining(tag || null));
     $("theme-grid").append(btn);
   }
 }
+
+/** Puzzles for a theme (null = any) within the Level Select rating range. */
+function levelSelection(theme) {
+  const lo = Number(rangeMin.value), hi = Number(rangeMax.value);
+  const label = theme ? themeLabel(theme) : "Random";
+  return {
+    puzzles: filterPuzzles(allPuzzles, { minRating: lo, maxRating: hi, theme }),
+    label: `${label} · ${lo}–${hi}`,
+  };
+}
+
+function startThemeTraining(theme) {
+  const { puzzles, label } = levelSelection(theme);
+  if (puzzles.length > 0) startTraining(puzzles, label);
+}
+
+/** Restore the last rating range chosen on Level Select. */
+function loadRange() {
+  try {
+    const [lo, hi] = JSON.parse(localStorage.getItem(LEVEL_RANGE_KEY));
+    if (Number.isFinite(lo) && Number.isFinite(hi)) {
+      rangeMin.value = lo;
+      rangeMax.value = hi;
+    }
+  } catch { /* nothing saved yet */ }
+  updateRange();
+}
+
+// ---------- stats ----------
+
+function showStats() {
+  const list = attempts.attempts;
+  const summary = summarize(list);
+  $("stats-attempted").textContent = summary.attempted.toLocaleString();
+  $("stats-rate").textContent = percent(summary.rate);
+  $("stats-time").textContent = summary.avgMs === null ? "–" : `${Math.round(summary.avgMs / 1000)}s`;
+  $("stats-empty").hidden = list.length > 0;
+
+  $("theme-stats").replaceChildren(...accuracyByTheme(list).map((r) => statBar(themeLabel(r.theme), r)));
+  $("rating-stats").replaceChildren(...accuracyByRating(list).map((r) => statBar(`${r.min}–${r.max}`, r)));
+
+  // Practise button: weakest theme within the Level Select rating range.
+  const weakest = weakestTheme(list);
+  const btn = $("practise-btn");
+  if (!weakest) {
+    btn.disabled = true;
+    btn.textContent = "Practise weakest theme";
+    $("practise-note").textContent =
+      `Attempt at least ${MIN_ATTEMPTS_FOR_WEAKEST} puzzles in a theme to find your weakest one.`;
+  } else {
+    const { puzzles, label } = levelSelection(weakest);
+    btn.disabled = puzzles.length === 0;
+    btn.textContent = `Practise ${themeLabel(weakest)}`;
+    btn.dataset.theme = weakest;
+    $("practise-note").textContent = puzzles.length
+      ? `${label}, your Level Select rating range (${puzzles.length} puzzles).`
+      : `No ${themeLabel(weakest)} puzzles in your Level Select range (${label}). Widen it on Level Select.`;
+  }
+  showScreen("stats");
+}
+
+$("practise-btn").addEventListener("click", () => startThemeTraining($("practise-btn").dataset.theme));
+
+/** One row of a bar chart: label, bar filled to the first-try rate, value. */
+function statBar(label, { attempted, firstTry, rate }) {
+  const row = document.createElement("div");
+  row.className = "bar-row";
+  const level = rate === null ? "none" : rate < 0.5 ? "low" : rate < 0.75 ? "mid" : "high";
+  row.innerHTML = `<span class="bar-label"></span>
+    <span class="bar"><span class="bar-fill bar-${level}"></span></span>
+    <span class="bar-value"></span>`;
+  row.querySelector(".bar-label").textContent = label;
+  row.querySelector(".bar-fill").style.width = `${(rate ?? 0) * 100}%`;
+  row.querySelector(".bar-value").textContent =
+    attempted ? `${percent(rate)} (${firstTry}/${attempted})` : "no data";
+  return row;
+}
+
+const percent = (rate) => (rate === null ? "–" : `${Math.round(rate * 100)}%`);
 
 // ---------- puzzle screen ----------
 
@@ -154,6 +237,8 @@ async function loadNextPuzzle(puzzle = deck.next()) {
   const token = ++loadToken;
   if (!puzzle) return;
   session = new PuzzleSession(puzzle);
+  turnStartedAt = null;
+  recorded = false;
 
   // Show the starting position from the player's side, before the opponent moves.
   setPlayerTurn(false);
@@ -172,6 +257,7 @@ async function loadNextPuzzle(puzzle = deck.next()) {
   if (token !== loadToken) return;
 
   setStatus(`Find the best move for ${capitalize(session.playerColor)}.`);
+  turnStartedAt = performance.now();
   setPlayerTurn(true);
 }
 
@@ -211,6 +297,7 @@ async function handlePlayerMove(uci) {
 
   if (result.solved) {
     solved.add(session.puzzle.id);
+    recordAttempt("solved");
     setStatus("Puzzle solved! 🎉", "solved");
     setFinished(true);
     return;
@@ -252,7 +339,9 @@ async function showSolution() {
   streak.wrong();
   updateStreak();
   setStatus("Here's the solution…", "reveal");
-  for (const { move, fen, check } of session.revealSolution()) {
+  const steps = session.revealSolution();
+  recordAttempt("revealed");
+  for (const { move, fen, check } of steps) {
     await wait(REPLY_DELAY_MS);
     if (token !== loadToken) return;
     await board.animateMove(move, fen, { lastMove: move, check });
@@ -264,9 +353,24 @@ async function showSolution() {
 
 /** Skipping counts as a miss, so it can't be used to protect a streak. */
 function skipPuzzle() {
+  if (session && !session.finished) recordAttempt("skipped");
   streak.wrong();
   updateStreak();
   loadNextPuzzle();
+}
+
+/** Log this puzzle for the stats page (once per puzzle). */
+function recordAttempt(outcome) {
+  if (recorded) return;
+  recorded = true;
+  const { id, rating, themes } = session.puzzle;
+  attempts.record({
+    id, rating, themes, outcome,
+    firstTry: session.firstTry,
+    wrongMoves: session.mistakes,
+    ms: turnStartedAt === null ? 0 : Math.round(performance.now() - turnStartedAt),
+    at: Date.now(),
+  });
 }
 
 /** Only the player's turn allows moving pieces or asking for the solution. */
@@ -323,6 +427,7 @@ async function init() {
   setThemesVisible(loadThemesPreference());
   updateStreak();
   buildThemeButtons();
+  loadRange();
   try {
     const res = await fetch("data/puzzles.json");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -333,6 +438,7 @@ async function init() {
   }
   $("play-btn").disabled = false;
   $("levels-btn").disabled = false;
+  $("stats-btn").disabled = false;
 
   // Deep link to one puzzle, e.g. index.html#puzzle=4VfTC
   const linkedId = new URLSearchParams(location.hash.slice(1)).get("puzzle");

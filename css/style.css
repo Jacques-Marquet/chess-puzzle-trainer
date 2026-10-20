@@ -199,9 +199,9 @@ h1, h2, h3 { margin: 0; line-height: 1.15; }
 .glyph-l { --piece: url(../assets/pieces/wB.svg); height: 1em; vertical-align: -0.1em; margin: 0 -0.12em 0 -0.04em; }
 .glyph-i { --piece: url(../assets/pieces/wP.svg); height: 0.92em; vertical-align: -0.1em; margin: 0 -0.16em 0 -0.12em; }
 
-.tagline { color: var(--text-muted); font-size: 1.1rem; margin: 16px 0 28px; }
+.tagline { color: var(--text-muted); font-size: 1.1rem; margin: 14px 0 24px; }
 
-.menu-buttons { display: flex; flex-direction: column; gap: 16px; }
+.menu-buttons { display: flex; flex-direction: column; gap: 14px; }
 /* Big chunky buttons with a solid "3D" bottom edge that presses down. */
 .menu-btn {
   display: flex;
@@ -239,7 +239,7 @@ svg.menu-btn-icon circle { fill: #3a362f; }
   list-style: none;
   display: flex;
   gap: 28px;
-  margin: 28px 0 0;
+  margin: 22px 0 0;
   padding: 0;
   color: var(--text-muted);
   font-size: 0.82rem;
@@ -255,7 +255,7 @@ svg.menu-btn-icon circle { fill: #3a362f; }
 .reset-btn { margin-top: 14px; padding: 0; color: var(--text-muted); text-decoration-color: rgb(255 255 255 / 0.25); }
 .reset-btn:hover { color: var(--text); }
 .reset-btn.armed { color: var(--red); text-decoration-color: currentColor; }
-.credits { margin-top: 56px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+.credits { margin-top: 32px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
 
 /* ---------- level select ---------- */
 .levels-panel { max-width: 720px; margin: 0 auto; padding: 20px 28px 32px; }
@@ -314,6 +314,34 @@ svg.menu-btn-icon circle { fill: #3a362f; }
 .theme-btn .count { font-size: 0.78rem; font-weight: 400; color: var(--text-muted); }
 .theme-random { background: rgb(217 164 65 / 0.12); border-color: var(--accent); }
 .theme-random .theme-name::before { content: "🎲 "; }
+
+/* ---------- stats ---------- */
+.stats-panel { max-width: 860px; margin: 0 auto; padding: 20px 28px 32px; }
+.stats-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+.stats-empty { color: var(--text-muted); text-align: center; margin: 16px 0 0; }
+.practise {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 20px; padding: 14px 16px; border-radius: 10px;
+  background: rgb(217 164 65 / 0.08); border: 1px solid rgb(217 164 65 / 0.25);
+}
+.practise-note { margin: 0; flex: 1 1 220px; font-size: 0.85rem; color: var(--text-muted); }
+.stats-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 36px; }
+.section-hint { text-transform: none; letter-spacing: 0; font-style: italic; opacity: 0.8; margin-left: 6px; }
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row {
+  display: grid;
+  grid-template-columns: 8.5em 1fr 7.5em;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.bar-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { height: 10px; border-radius: 5px; background: var(--bg-hover); overflow: hidden; }
+.bar-fill { display: block; height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+.bar-low { background: var(--red); }
+.bar-mid { background: var(--accent); }
+.bar-high { background: var(--green-light); }
+.bar-value { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
 /* ---------- puzzle screen ---------- */
 .topbar { display: flex; align-items: center; gap: 12px; margin: -8px 0 12px -12px; }
@@ -393,6 +421,12 @@ svg.menu-btn-icon circle { fill: #3a362f; }
   .menu-content { text-align: center; }
   .menu-buttons, .menu-stats { align-items: center; justify-content: center; }
   .menu-btn { width: 100%; }
+  .stats-columns { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .stats-panel, .levels-panel { padding: 16px 16px 24px; }
+  .stats-summary .stat-value { font-size: 1.5rem; }
+  .bar-row { grid-template-columns: 7em 1fr 6.5em; font-size: 0.8rem; }
 }
 
 /* ---------- board ---------- */
