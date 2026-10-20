@@ -240,8 +240,9 @@ export class Board {
     if (e.button !== 0 || this.promoting) return;
     const square = this.squareFromEvent(e);
     if (!square) return;
-    // A left click on a square you can't move from clears the annotations.
-    if (!this.selected && this.getLegalMoves(square).length === 0) this.clearAnnotations();
+    // Any left click - picking up a piece, selecting it, or clicking an empty
+    // square - clears the arrows and marks, like on Lichess.
+    this.clearAnnotations();
     if (!this.interactive) return;
 
     // Second click of click-to-move: a legal target of the selected piece.

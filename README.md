@@ -24,7 +24,7 @@ hosted on GitHub Pages.
   - **Hint**: after three wrong tries on the same move, the piece you should move is highlighted.
   - **Arrows, chess.com style**: right-click and drag to draw an arrow (knight moves get an
     L-shaped arrow), or right-click a square to mark it. Doing it again removes it. Arrows
-    clear once a move is made.
+    clear as soon as you pick up a piece or left-click the board.
   - **Any checkmate counts as correct**, even if it isn't the stored solution.
   - After each correct move, the opponent's reply is played automatically.
   - Pawn promotion uses a picker (queen, knight, rook, bishop).
