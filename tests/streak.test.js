@@ -48,3 +48,13 @@ test("blocked storage does not crash", () => {
   s.correct();
   assert.equal(s.best, 1);
 });
+
+test("reset() clears the current and the saved best streak", () => {
+  const storage = fakeStorage();
+  const s = new Streak(storage);
+  s.correct(); s.correct();
+  s.reset();
+  assert.equal(s.current, 0);
+  assert.equal(s.best, 0);
+  assert.equal(new Streak(storage).best, 0);
+});

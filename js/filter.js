@@ -30,11 +30,15 @@ export function filterPuzzles(puzzles, { minRating = -Infinity, maxRating = Infi
 /**
  * Deals puzzles like a shuffled deck: every puzzle is served once before any
  * repeats, then the deck is reshuffled.
+ *
+ * isSeen(puzzle) marks puzzles solved on earlier visits. Each shuffle uses
+ * only the unseen ones; once none are left, it falls back to all of them.
  */
 export class PuzzleDeck {
-  constructor(puzzles, random = Math.random) {
+  constructor(puzzles, { random = Math.random, isSeen = () => false } = {}) {
     this.puzzles = puzzles;
     this.random = random;
+    this.isSeen = isSeen;
     this.order = [];
   }
 
@@ -44,7 +48,10 @@ export class PuzzleDeck {
 
   next() {
     if (this.puzzles.length === 0) return null;
-    if (this.order.length === 0) this.order = shuffle([...this.puzzles], this.random);
+    if (this.order.length === 0) {
+      const unseen = this.puzzles.filter((p) => !this.isSeen(p));
+      this.order = shuffle(unseen.length > 0 ? unseen : [...this.puzzles], this.random);
+    }
     return this.order.pop();
   }
 }

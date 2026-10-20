@@ -252,6 +252,9 @@ svg.menu-btn-icon circle { fill: #3a362f; }
   font-variant-numeric: tabular-nums;
 }
 .menu-meta { color: var(--text-muted); font-size: 0.9rem; margin-top: 20px; }
+.reset-btn { margin-top: 14px; padding: 0; color: var(--text-muted); text-decoration-color: rgb(255 255 255 / 0.25); }
+.reset-btn:hover { color: var(--text); }
+.reset-btn.armed { color: var(--red); text-decoration-color: currentColor; }
 .credits { margin-top: 56px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
 
 /* ---------- level select ---------- */

@@ -22,6 +22,13 @@ export class Streak {
     this.current = 0;
   }
 
+  /** Forget both the current and the best streak. */
+  reset() {
+    this.current = 0;
+    this.best = 0;
+    this.save();
+  }
+
   load() {
     try {
       return Number(this.storage?.getItem(BEST_STREAK_KEY)) || 0;

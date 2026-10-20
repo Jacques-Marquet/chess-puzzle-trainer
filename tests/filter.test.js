@@ -37,6 +37,37 @@ test("deck serves every puzzle once before repeating", () => {
   assert.ok(deck.next()); // reshuffles and keeps going
 });
 
+test("deck serves unseen puzzles first", () => {
+  const seen = new Set(["a", "c"]);
+  const deck = new PuzzleDeck(PUZZLES, { isSeen: (p) => seen.has(p.id) });
+  assert.deepEqual([deck.next().id, deck.next().id].sort(), ["b", "d"]);
+});
+
+test("deck falls back to seen puzzles once the unseen ones run out", () => {
+  const seen = new Set(["a", "c"]);
+  const deck = new PuzzleDeck(PUZZLES, { isSeen: (p) => seen.has(p.id) });
+  // Solve the two unseen puzzles as they are dealt.
+  seen.add(deck.next().id);
+  seen.add(deck.next().id);
+  const nextRound = [1, 2, 3, 4].map(() => deck.next().id).sort();
+  assert.deepEqual(nextRound, ["a", "b", "c", "d"]);
+});
+
+test("puzzles dealt but not solved come back before seen ones", () => {
+  const seen = new Set(["a", "b", "c"]);
+  const deck = new PuzzleDeck(PUZZLES, { isSeen: (p) => seen.has(p.id) });
+  assert.equal(deck.next().id, "d"); // dealt, but skipped (not solved)
+  assert.equal(deck.next().id, "d"); // still the only unseen puzzle
+});
+
+test("deck shuffle uses the injected random function", () => {
+  const deal = () => {
+    const deck = new PuzzleDeck(PUZZLES, { random: () => 0 });
+    return [1, 2, 3, 4].map(() => deck.next().id);
+  };
+  assert.deepEqual(deal(), deal());
+});
+
 test("empty deck returns null", () => {
   assert.equal(new PuzzleDeck([]).next(), null);
 });

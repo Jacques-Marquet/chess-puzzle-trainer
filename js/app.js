@@ -1,10 +1,12 @@
 // Wires the screens together: loads the puzzle data, handles the menu and
 // level select, and runs the puzzle screen by connecting the Board (what you
-// see) to PuzzleSession (the rules of the puzzle) and Streak (the score).
+// see) to PuzzleSession (the rules of the puzzle), Streak (the score) and
+// SolvedPuzzles (which puzzles you've already done).
 
 import { Board, wait } from "./board.js";
 import { PuzzleSession } from "./puzzle.js";
 import { Streak } from "./streak.js";
+import { SolvedPuzzles } from "./progress.js";
 import { filterPuzzles, PuzzleDeck, THEMES, themeLabel, MIN_RATING, MAX_RATING } from "./filter.js";
 
 const SHOW_THEMES_KEY = "chess-trainer:showThemes";
@@ -20,6 +22,7 @@ let deck = null;
 let session = null;
 let loadToken = 0; // bumps on every new puzzle so stale async steps stop
 const streak = new Streak();
+const solved = new SolvedPuzzles();
 
 const board = new Board($("board"), {
   getLegalMoves: (square) => session?.legalMovesFrom(square) ?? [],
@@ -38,6 +41,8 @@ function goToMenu() {
   setPlayerTurn(false);
   $("menu-count").textContent = allPuzzles.length.toLocaleString();
   $("menu-best").textContent = streak.best;
+  $("menu-solved").textContent = solved.size.toLocaleString();
+  disarmReset();
   $("menu-status").hidden = true;
   showScreen("menu");
 }
@@ -63,6 +68,30 @@ $("levels-btn").addEventListener("click", () => {
   updateRange();
   showScreen("levels");
 });
+
+// "Reset progress" asks for a second click instead of a pop-up dialog.
+const RESET_CONFIRM_MS = 4000;
+let resetTimer = null;
+
+$("reset-btn").addEventListener("click", () => {
+  if (!$("reset-btn").classList.contains("armed")) {
+    $("reset-btn").classList.add("armed");
+    $("reset-btn").textContent = "Click again to clear solved puzzles and best streak";
+    resetTimer = setTimeout(disarmReset, RESET_CONFIRM_MS);
+    return;
+  }
+  solved.clear();
+  streak.reset();
+  updateStreak();
+  goToMenu();
+  $("reset-btn").textContent = "Progress reset ✓";
+});
+
+function disarmReset() {
+  clearTimeout(resetTimer);
+  $("reset-btn").classList.remove("armed");
+  $("reset-btn").textContent = "Reset progress";
+}
 
 // ---------- level select ----------
 
@@ -114,7 +143,8 @@ function buildThemeButtons() {
 // ---------- puzzle screen ----------
 
 function startTraining(puzzles, label, first = null) {
-  deck = new PuzzleDeck(puzzles);
+  // Puzzles solved on earlier visits are only served once the rest run out.
+  deck = new PuzzleDeck(puzzles, { isSeen: (p) => solved.has(p.id) });
   $("mode-label").textContent = label;
   showScreen("puzzle");
   loadNextPuzzle(first ?? deck.next());
@@ -180,6 +210,7 @@ async function handlePlayerMove(uci) {
   board.showBadge(to, "correct");
 
   if (result.solved) {
+    solved.add(session.puzzle.id);
     setStatus("Puzzle solved! 🎉", "solved");
     setFinished(true);
     return;

@@ -35,6 +35,10 @@ hosted on GitHub Pages.
 - **Streaks**: counts correct moves in a row. A wrong move, **Show solution** or
   **Skip puzzle** all reset it, so you can't skip hard puzzles to protect a streak.
   Your best streak is saved in the browser (`localStorage`).
+- **No repeats across visits**: puzzles you've solved are remembered in the browser,
+  and new sessions serve puzzles you haven't solved yet. Only when every puzzle matching
+  your filter is solved do they start coming round again. **Reset progress** on the menu
+  (click twice to confirm) clears your solved puzzles and best streak.
 - **Deep links**: `index.html#puzzle=4VfTC` opens a specific puzzle.
 
 | Menu | Level Select |
@@ -49,8 +53,9 @@ css/style.css           styling, including the board
 js/app.js               controller: screen switching, wires the modules together
 js/board.js             chessboard UI: rendering, drag/click input, arrows, animation, promotion picker
 js/puzzle.js            PuzzleSession: the rules of solving a puzzle (no DOM)
-js/filter.js            filter by rating/theme; a shuffled "deck" so puzzles don't repeat
+js/filter.js            filter by rating/theme; a shuffled "deck", unsolved puzzles first
 js/streak.js            current and best streak, persisted to localStorage
+js/progress.js          SolvedPuzzles: IDs of puzzles you've solved, persisted to localStorage
 vendor/chess.js         chess.js 1.4.0 (move legality, checkmate detection)
 assets/pieces/          cburnett SVG piece set
 data/puzzles.json       the 5,000 puzzles the app loads
@@ -60,8 +65,10 @@ tests/                  JavaScript unit tests (Node's built-in test runner)
 
 **Design.** The logic is kept separate from the display:
 
-- `puzzle.js`, `filter.js` and `streak.js` are pure JavaScript with no browser
-  dependencies, so they are unit-tested directly in Node.
+- `puzzle.js`, `filter.js`, `streak.js` and `progress.js` are pure JavaScript with
+  no browser dependencies, so they are unit-tested directly in Node. The modules
+  that save data are given a storage object rather than using `localStorage`
+  directly, so tests can pass in a fake one.
 - `board.js` is a reusable UI component. It knows nothing about chess rules: it
   asks its owner which moves are legal and reports the move the user made.
 - `app.js` connects the two.
@@ -69,6 +76,11 @@ tests/                  JavaScript unit tests (Node's built-in test runner)
 **Why a custom board?** Popular board libraries are either GPL-licensed or
 depend on jQuery. A ~350-line component using Pointer Events gives drag-and-drop
 on both mouse and touch, with full control over feedback such as the ✓/✗ badges.
+
+**Choosing the next puzzle.** `PuzzleDeck` works like a shuffled deck of cards:
+every puzzle is dealt once before any repeats. Each time it reshuffles, it only
+includes puzzles you haven't solved (`isSeen`), falling back to the full set when
+none are left. Puzzles you skip or get wrong stay "unseen", so they come back.
 
 **How a puzzle is played.** Lichess stores each puzzle as:
 
@@ -152,6 +164,8 @@ The **JavaScript tests** cover:
 - solving a puzzle
 - showing the solution part-way through
 - filtering by rating and theme
+- the deck serving unsolved puzzles first, then falling back to solved ones
+- saving solved puzzle IDs, resetting them, and coping with blocked or corrupted storage
 - streak counting and persistence
 
 One test also replays all 5,000 bundled puzzles to confirm every move is legal.
